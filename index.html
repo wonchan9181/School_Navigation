@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>세비게이션</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+      font-family: 'Orbitron', sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      display: flex;
+      gap: 4rem;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+      min-width: 250px;
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    select {
+      display: block;
+      width: 100%;
+      padding: 0.6em;
+      margin-bottom: 1rem;
+      border-radius: 10px;
+      background: #fff;
+      color: #333;
+      font-family: inherit;
+      font-weight: bold;
+      box-shadow: 0 0 10px #00eaff;
+    }
+
+    .subSelect {
+      display: none;
+    }
+
+    .run-button {
+      margin-top: 2rem;
+      padding: 1em 2em;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(45deg, #ff00cc, #3333ff);
+      color: white;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      box-shadow: 0 0 15px #ff00cc;
+    }
+
+    .run-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 25px #ff00cc;
+    }
+
+    .loader {
+      margin-top: 1rem;
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #00ffe5;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      box-shadow: 0 0 20px #00ffe5;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- 출발지 선택 -->
+    <div class="card">
+      <h2>출발지</h2>
+      <select onchange="handleBuildingChange(this.value, 'start')">
+        <option disabled selected>건물 선택</option>
+        <option value="집현전" selected>집현전</option>
+        <option value="장영실관">장영실관</option>
+        <option value="미리내">미리내</option>
+        <option value="한누리관">한누리관</option>
+      </select>
+      <select id="start-floor" onchange="handleFloorChange(this.value, 'start')">
+        <option disabled selected>층 선택</option>
+        <option value="1층" selected>1층</option>
+        <option value="2층">2층</option>
+        <option value="3층">3층</option>
+        <option value="4층">4층</option>
+      </select>
+      <select id="start-room" class="subSelect"></select>
+    </div>
+
+    <!-- 도착지 선택 -->
+    <div class="card">
+      <h2>도착지</h2>
+      <select onchange="handleBuildingChange(this.value, 'end')">
+        <option disabled selected>건물 선택</option>
+        <option value="집현전" selected>집현전</option>
+        <option value="장영실관">장영실관</option>
+        <option value="미리내">미리내</option>
+        <option value="한누리관">한누리관</option>
+      </select>
+      <select id="end-floor" onchange="handleFloorChange(this.value, 'end')">
+        <option disabled selected>층 선택</option>
+        <option value="1층" selected>1층</option>
+        <option value="2층">2층</option>
+        <option value="3층">3층</option>
+        <option value="4층">4층</option>
+      </select>
+      <select id="end-room" class="subSelect"></select>
+    </div>
+  </div>
+
+  <button class="run-button" onclick="showLoader()">탐색</button>
+  <div id="loader" class="loader hidden"></div>
+
+  <script>
+    const rooms = {
+      '집현전': {
+        '1층': ['교무기획부', '도서관', '책보고', '매점'],
+        '2층': ['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8'],
+        '3층': ['2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '2-7', '2-8'],
+        '4층': ['3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7']
+      },
+      '장영실관': {
+        '1층': ['생명과학 실험실1', '생명과학 실험실2'],
+        '2층': ['화학 실험실1', '화학 실험실2'],
+        '3층': ['물리 실험실1', '물리 실험실2'],
+        '4층': ['지구과학 실험실1', '지구과학 실험실2']
+      },
+      '미리내': {
+        '기본': ['가동', '나동', '다동', '라동']
+      },
+      '한누리관': {
+        '기본': ['강당', '급식실', '체육관', '헬스장']
+      }
+    };
+
+    let current = {
+      start: { building: null, floor: null },
+      end: { building: null, floor: null }
+    };
+
+    function handleBuildingChange(building, type) {
+      current[type].building = building;
+      const floorSelect = document.getElementById(`${type}-floor`);
+      const roomSelect = document.getElementById(`${type}-room`);
+
+      // 층 select 보여줄지 결정
+      if (rooms[building]['기본']) {
+        floorSelect.style.display = 'none';
+        fillRoomSelect(roomSelect, rooms[building]['기본']);
+      } else {
+        floorSelect.style.display = 'block';
+        roomSelect.style.display = 'none';
+        roomSelect.innerHTML = '';
+      }
+    }
+
+    function handleFloorChange(floor, type) {
+      current[type].floor = floor;
+      const building = current[type].building;
+      const roomSelect = document.getElementById(`${type}-room`);
+      const options = rooms[building][floor] || [];
+      fillRoomSelect(roomSelect, options);
+    }
+
+    function fillRoomSelect(selectEl, items) {
+      selectEl.innerHTML = items.map(item => `<option>${item}</option>`).join('');
+      selectEl.style.display = 'block';
+    }
+
+    function showLoader() {
+      document.getElementById('loader').classList.remove('hidden');
+      setTimeout(() => {
+        document.getElementById('loader').classList.add('hidden');
+        alert('탐색이 완료되었습니다!');
+      }, 3000);
+    }
+      window.onload = function () {
+    // 출발지 초기값 세팅
+    handleBuildingChange('집현전', 'start');
+    handleFloorChange('1층', 'start');
+
+    // 도착지 초기값 세팅
+    handleBuildingChange('집현전', 'end');
+    handleFloorChange('1층', 'end');
+  };
+  </script>
+</body>
+</html>
