@@ -346,6 +346,7 @@ G = {
 
   }
 
+//나도할수 있다! js라고 아랍어가 아니다. 읽는거는 감성만 충분하면 됨
     let current = {       
       start: { building: null, floor: null },
       end: { building: null, floor: null }
@@ -393,22 +394,22 @@ G = {
   setTimeout(() => {
     document.getElementById('loader').classList.add('hidden');
 
-    if (!(startRoom in G)) {    // 시작방이 그래프에 없는 경우
+    if (!(startRoom in G)) {    // 시작지가 그래프에 없음
       pathOutput.innerText = `error 101`;
       return;
     }
 
-    if (!(endRoom in G)) {    // 도착방이 그래프에 없는 경우
+    if (!(endRoom in G)) {    // 도착지가 그래프에 없음
       pathOutput.innerText = `error 101`;
       return;
     }
 
     const path = aStar(startRoom, endRoom);
 
-    if (path != ' ') {    // 경로가 존재하는 경우
+    if (path != ' ') {    // 경로가 존재
       console.log(path)
       pathOutput.innerText = `최단 경로: ${path.join(" → ")}`;
-    } else {             // 경로가 존재하지 않는 경우
+    } else {             // 경로가 없음
       pathOutput.innerText = "error 404";
     }
   }, 1000);
@@ -416,22 +417,22 @@ G = {
 
 
 
-    function aStar(start, goal) { // A* 알고리즘을 사용하여 최단 경로를 찾는 함수
-      const openSet = new Set([start]); // 탐색할 노드 집합
-      const cameFrom = {};  // 이전 노드를 저장하는 객체
+    function aStar(start, goal) { // A* 알고리즘을 사용하여 최단 경로를 찾는 함수인척하는 다익스트라
+      const openSet = new Set([start]); // 탐색할 노드
+      const cameFrom = {};  // 이전 노드
 
-      const gScore = {};  // 시작 노드에서 각 노드까지의 실제 비용
-      const fScore = {};  // 시작 노드에서 각 노드까지의 예상 비용
+      const gScore = {};  // 실제 비용
+      const fScore = {};  // 예상 비용
 
-      for (const node in G) {   // 그래프의 모든 노드에 대해 초기화
-        gScore[node] = Infinity;    // 시작 노드에서 해당 노드까지의 비용을 무한대로 설정
-        fScore[node] = Infinity;    // 시작 노드에서 해당 노드까지의 예상 비용을 무한대로 설정
+      for (const node in G) {       //무한대 초기화
+        gScore[node] = Infinity;    
+        fScore[node] = Infinity;   
       }
-      gScore[start] = 0;    // 시작 노드에서 시작 노드까지의 비용은 0
-      fScore[start] = heuristic(start, goal);     // 시작 노드에서 목표 노드까지의 예상 비용을 휴리스틱 함수로 계산
+      gScore[start] = 0;    
+      fScore[start] = heuristic(start, goal);     
 
-      while (openSet.size > 0) {    // 탐색할 노드가 남아있는 동안
-        let current = [...openSet].reduce((a, b) => // fScore를 기준으로 가장 낮은 값을 가진 노드를 찾음
+      while (openSet.size > 0) {    
+        let current = [...openSet].reduce((a, b) => // fScore를 기준으로 가장 낮은 값을 가진 노드 탐색
           fScore[a] < fScore[b] ? a : b  
         );
 
@@ -439,13 +440,13 @@ G = {
 
         openSet.delete(current);
 
-        for (const [neighbor, cost] of G[current] || []) {
-          const tentative_gScore = gScore[current] + cost;
-          if (tentative_gScore < gScore[neighbor]) {
-            cameFrom[neighbor] = current;
-            gScore[neighbor] = tentative_gScore;
-            fScore[neighbor] = gScore[neighbor] + heuristic(neighbor, goal);
-            openSet.add(neighbor);
+        for (const [neighbor, cost] of G[current] || []) {                    // 현재 노드의 이웃 노드와 비용을 가져옴
+          const tentative_gScore = gScore[current] + cost;                    // 현재 노드에서 이웃 노드까지의 비용을 계산
+          if (tentative_gScore < gScore[neighbor]) {                          // 이웃 노드까지의 비용이 더 낮으면
+            cameFrom[neighbor] = current;                                     // 이전 노드를 현재 노드로 설정
+            gScore[neighbor] = tentative_gScore;                              // 이웃 노드까지의 비용을 업데이트
+            fScore[neighbor] = gScore[neighbor] + heuristic(neighbor, goal);  // 이웃 노드에서 목표 노드까지의 예상 비용을 업데이트
+            openSet.add(neighbor);                                            // 이웃 노드를 탐색할 노드 집합에 추가
           }
         }
       }
@@ -453,20 +454,20 @@ G = {
       return null;
     }
 
-    function heuristic(a, b) {
-      return 0; 
+    function heuristic(a, b) {  //일단 휴리스틱 0으로 설정(그냥 다익스트라임) 추후 수정 필요할거 같으면 수정, 딱히 문제 안될거같으면 걍 다익스트라로 사용
+      return 0;                                                  //ex)계단이나 엘리베이터 등 거리 기준 다르게 부여
     }
 
-    function reconstructPath(cameFrom, current) {
+    function reconstructPath(cameFrom, current) { //경로 정리
       const totalPath = [current];
       while (current in cameFrom) {
         current = cameFrom[current];
         totalPath.unshift(current);
       }
-      return totalPath;
+      return totalPath;//
     }
 
-    window.onload = function () {
+    window.onload = function () { // 기본값
       handleBuildingChange('집현전', 'start');
       handleFloorChange('1층', 'start');
       handleBuildingChange('집현전', 'end');
